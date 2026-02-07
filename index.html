@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório</title>
+    <link rel="stylesheet" href="css/estilo.css">
+    <script src="https://kit.fontawesome.com/63facef115.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Relatório Predial</h1>
+        <form>
+
+            <label for="select" class="select">
+                <select style="order: 1;" name="slcEtapa" id="slcEtapa">
+                    <option value="antes">Antes</option>
+                    <option value="durante">Durante</option>
+                    <option value="depois">Depois</option>
+                </select>
+                <select name="slcLocal" id="slcLocal">
+                    <option value="externa">Área externa</option>
+                    <option value="pav1">1° Pavimento</option>
+                    <option value="pav2">2° Pavimento</option>
+                    <option value="pav3">3° Pavimento</option>
+                    <option value="pav4">4° Pavimento</option>
+                    <option value="pav5">5° Pavimento</option>
+                </select>
+            </label>
+
+            <label for="inEmpresa">
+                Empresa: <input type="text" name="inEmpresa" id="inEmpresa">
+            </label>
+
+            <label for="inSolicitante">
+                Solicitante: <input type="text" name="inSolicitante" id="inSolicitante
+                ">
+            </label>
+
+            <label for="inFuncionario">
+                Funcionário: <input type="text" name="inFuncionario" id="inFuncionario">
+            </label>
+
+            <label for="inAtividade">
+                <fieldset>
+                    <legend>Descrição</legend>
+
+                    <textarea style="width: 100%;" name="inDescricao" id="inDescricao"></textarea>
+
+                </fieldset>
+            </label>
+
+            <label id="camera">Tirar foto<span class="foto"><i class="fa-solid fa-camera"></i></span></label>
+
+            <label for="" id="preview-foto" class="preview-area">
+                <fieldset>
+                    <legend>Foto selecionada</legend>
+                    <div class="foto-container" id="foto-container">
+                        <div class="sem-foto">Nenhuma foto tirada</div>
+                    </div>
+
+                </fieldset>
+            </label>
+
+            <input type="submit" value="Enviar">
+
+        </form>
+
+        <div class="modal">
+
+            <video autoplay playsinline></video>
+            <img id="preview" class="escondido">
+            <button id="captura"></button>
+
+            <div class="acoes">
+                <i id="confirmar" style="color: rgb(2, 94, 2);" class="fa-solid fa-circle-check"></i>
+                <i id="refazer" style="color: rgb(156, 4, 4);" class="fa-solid fa-circle-xmark"></i>
+            </div>
+
+        </div>
+
+
+        <canvas hidden></canvas>
+
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

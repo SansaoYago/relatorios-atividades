@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding-top: 50px;
+        }
+
+        .container {
+            display: block;
+            width: fit-content;
+            margin: auto;
+            border: 2px dotted red;
+        }
+
+        section#relatorio {
+            background-color: burlywood;
+            display: grid;
+            grid-template: 250px ;
+        }
+
+        .img {
+            width: 250px;
+            height: 250px;
+        }
+
+        img {
+            width: 100%;
+            aspect-ratio: 1/1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section id="relatorio">
+            <div class="img">
+                <img src="img.jpeg" alt="">
+            </div>
+            <div class="info">
+                <p>
+                    <b>Empresa:</b><span class="empresa"></span>
+                </p>
+                <p>
+                    <b>Solicitante:</b><span class="solicitante"></span>
+                </p>
+                <p>
+                    <b>Funcionário(s):</b><span class="funcionario"></span>
+                </p>
+                <p>
+                    <b>Atividade:</b><span class="atividade"></span>
+                </p>
+                <p>
+                    <b>Local:</b><span class="local"></span>
+                </p>
+                <p>
+                    <b>Etapa:</b><span class="etapa"></span>
+                </p>
+                <p>
+                    <b>Hora:</b><span class=""></span>
+                </p>
+
+            </div>
+        </section>
+    </div>
+</body>
+</html>

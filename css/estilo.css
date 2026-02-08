@@ -118,7 +118,7 @@ video {
 }
 
 #captura {
-    position: inherit;
+    position: fixed;
     bottom: 15px;
     right: 48%;
     background-color: rgb(106, 91, 119);
@@ -128,6 +128,14 @@ video {
     border: 3px solid rgba(255, 248, 248, 0.449);
     outline: 5px solid rgb(131, 121, 172);
     transition: 150ms;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 0;
+    right: 0;
+    margin: 0 auto; /* Centraliza horizontalmente */
+    width: 35px; /* Mantém o tamanho fixo */
 }
 
 #captura:active {

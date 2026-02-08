@@ -418,17 +418,17 @@ function formatarParaWhatsApp(dados) {
 
     return `🔧 *RELATÓRIO DE SERVIÇO - ${textoEtapa}*
 
-🏢 *EMPRESA:* ${dados.empresa}
-👤 *SOLICITANTE:* ${dados.solicitante}
-👷 *FUNCIONÁRIO:* ${dados.funcionario}
-📋 *ETAPA:* ${textoEtapa}
-📍 *ÁREA:* ${textoArea}
-🏠 *LOCAL:* ${dados.local || 'Não especificado'}
-${dados.horaInicio ? `🕒 *HORA INÍCIO:* ${dados.horaInicio}` : ''}
-${dados.horaTermino ? `⏱️ *HORA TÉRMINO:* ${dados.horaTermino}` : ''}
-📅 *DATA:* ${dados.data}
+*EMPRESA:* ${dados.empresa}
+*SOLICITANTE:* ${dados.solicitante}
+*FUNCIONÁRIO:* ${dados.funcionario}
+*ETAPA:* ${textoEtapa}
+*ÁREA:* ${textoArea}
+*LOCAL:* ${dados.local || 'Não especificado'}
+${dados.horaInicio ? `*HORA INÍCIO:* ${dados.horaInicio}` : ''}
+${dados.horaTermino ? `*HORA TÉRMINO:* ${dados.horaTermino}` : ''}
+*DATA:* ${dados.data}
 
-📝 *DESCRIÇÃO:*
+*DESCRIÇÃO:*
 ${dados.descricao || 'Sem descrição'}
 
 ✅ *STATUS:* ${dados.etapa === 'depois' ? 'CONCLUÍDO' : 'EM ANDAMENTO'}`;

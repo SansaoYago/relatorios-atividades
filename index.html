@@ -18,7 +18,19 @@
         <form>
 
             <label for="select" class="select">
+                <select name="solicitante" id="solicitante">
+                    <option value="" disabled selected>Solicitante</option>
+
+                    <option value="Bismarck">Bismarck</option>
+                    <option value="Washington">Washington</option>
+                    <option value="Valdir">Valdir</option>
+                    <option value="Alaf">Alaf</option>
+                    <option value="Erisberto">Erisberto</option>
+                    <option value="Estevão">Estevão</option>
+                </select>
                 <select style="order: 1;" name="slcEtapa" id="slcEtapa">
+                    <option value="" disabled selected>Etapa</option>
+
                     <option value="antes">Antes</option>
                     <option value="durante">Durante</option>
                     <option value="depois">Depois</option>
@@ -38,13 +50,12 @@
                 Empresa: <input type="text" name="inEmpresa" id="inEmpresa" value="Engemon">
             </label>
 
-            <label for="inSolicitante">
-                Solicitante: <input type="text" name="inSolicitante" id="inSolicitante
-                " value="Bismarck">
-            </label>
-
             <label for="inFuncionario">
                 Funcionário: <input type="text" name="inFuncionario" id="inFuncionario">
+            </label>
+
+            <label for="inLocal">
+                Local: <input type="text" name="inLocal" id="inLocal">
             </label>
 
             <label for="inAtividade">

@@ -18,7 +18,7 @@
         <form>
 
             <label for="select" class="select">
-                <select name="solicitante" id="solicitante">
+                <select name="inSolicitante" id="inSolicitante">
                     <option value="" disabled selected>Solicitante</option>
 
                     <option value="Bismarck">Bismarck</option>
@@ -36,13 +36,16 @@
                     <option value="depois">Depois</option>
                 </select>
                 <select name="slcLocal" id="slcLocal">
-                    <option value="externa">Área externa</option>
+                    <option value="" disabled selected>Área</option>
+
                     <option value="terreo">Térreo</option>
                     <option value="pav1">1° Pavimento</option>
                     <option value="pav2">2° Pavimento</option>
                     <option value="pav3">3° Pavimento</option>
                     <option value="pav4">4° Pavimento</option>
                     <option value="pav5">5° Pavimento</option>
+                    <option value="externa">Área externa</option>
+                    <option value="telhado">Telhado</option>
                 </select>
             </label>
 
@@ -78,6 +81,9 @@
 
                 </fieldset>
             </label>
+            <input type="hidden" name="horaInicio" id="horaInicio">
+            <input type="hidden" name="horaTermino" id="horaTermino">
+            
 
             <span id="submit"><input type="submit" value="Enviar"></span>
 

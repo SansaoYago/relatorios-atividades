@@ -48,6 +48,7 @@ form {
 select {
     height: 50px;
     border-radius: 5px;
+    text-align: center;
 }
 
 form label {

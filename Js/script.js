@@ -417,11 +417,11 @@ function formatarParaWhatsApp(dados) {
     }[dados.area] || dados.area;
 
     return `🔧 *RELATÓRIO DE SERVIÇO - ${textoEtapa}*
+*ETAPA:* ${textoEtapa}
 
 *EMPRESA:* ${dados.empresa}
 *SOLICITANTE:* ${dados.solicitante}
 *FUNCIONÁRIO:* ${dados.funcionario}
-*ETAPA:* ${textoEtapa}
 *ÁREA:* ${textoArea}
 *LOCAL:* ${dados.local || 'Não especificado'}
 ${dados.horaInicio ? `*HORA INÍCIO:* ${dados.horaInicio}` : ''}

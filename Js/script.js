@@ -416,7 +416,8 @@ function formatarParaWhatsApp(dados) {
         'telhado': 'Telhado'
     }[dados.area] || dados.area;
 
-    return `🔧 *RELATÓRIO DE SERVIÇO - ${textoEtapa}*
+    return `🔧 *RELATÓRIO DE SERVIÇO*
+    
 *ETAPA:* ${textoEtapa}
 
 *EMPRESA:* ${dados.empresa}
@@ -424,12 +425,14 @@ function formatarParaWhatsApp(dados) {
 *FUNCIONÁRIO:* ${dados.funcionario}
 *ÁREA:* ${textoArea}
 *LOCAL:* ${dados.local || 'Não especificado'}
+*DESCRIÇÃO:*
+${dados.descricao || 'Sem descrição'}
+
 ${dados.horaInicio ? `*HORA INÍCIO:* ${dados.horaInicio}` : ''}
 ${dados.horaTermino ? `*HORA TÉRMINO:* ${dados.horaTermino}` : ''}
 *DATA:* ${dados.data}
 
-*DESCRIÇÃO:*
-${dados.descricao || 'Sem descrição'}
+
 
 ✅ *STATUS:* ${dados.etapa === 'depois' ? 'CONCLUÍDO' : 'EM ANDAMENTO'}`;
 }

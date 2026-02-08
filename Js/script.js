@@ -210,28 +210,97 @@ form.addEventListener('submit', async function(e) {
     const dados = coletarDadosFormulario();
     const textoWhatsApp = formatarParaWhatsApp(dados);
     
-    // Tenta usar Web Share API (funciona em mobile e desktop modernos)
-    if (navigator.share) {
-        try {
+    // Tenta compartilhar com imagem
+    await compartilharComFoto(textoWhatsApp);
+});
+
+// NOVA FUNÇÃO: Compartilhar texto + foto
+async function compartilharComFoto(texto) {
+    try {
+        // Converte a foto de dataURL para Blob
+        const blob = await dataURLtoBlob(fotoAtual);
+        const file = new File([blob], 'relatorio_foto.jpg', { type: 'image/jpeg' });
+        
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Compartilha texto + imagem (suportado em alguns navegadores)
             await navigator.share({
-                title: `Relatório de Serviço - ${dados.etapa.toUpperCase()}`,
-                text: textoWhatsApp,
-                url: window.location.href // Opcional: link para o sistema
+                title: 'Relatório de Serviço',
+                text: texto,
+                files: [file]
             });
-            console.log('✅ Conteúdo compartilhado com sucesso!');
-            alert('✅ Relatório compartilhado! Verifique o WhatsApp.');
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error('Erro ao compartilhar:', error);
-                // Fallback: copiar para clipboard
-                copiarParaClipboard(textoWhatsApp);
+            alert('✅ Relatório compartilhado com foto!');
+        } else {
+            // Fallback: compartilha apenas texto e instrui sobre a foto
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Relatório de Serviço',
+                    text: texto + '\n\n📸 (A foto será enviada em seguida)'
+                });
+                alert('✅ Texto do relatório compartilhado!\n\nAgora compartilhe a foto abaixo:');
+                mostrarFotoParaCompartilhar();
+            } else {
+                // Fallback para desktop
+                abrirWhatsAppComTextoEFoto(texto);
             }
         }
-    } else {
-        // Fallback para navegadores sem suporte a navigator.share
-        copiarParaClipboard(textoWhatsApp);
+    } catch (error) {
+        console.error('Erro ao compartilhar:', error);
+        // Fallback final
+        abrirWhatsAppComTextoEFoto(texto);
     }
-});
+}
+
+// FUNÇÃO para converter dataURL para Blob
+function dataURLtoBlob(dataURL) {
+    const parts = dataURL.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    return new Blob([u8arr], { type: mime });
+}
+
+// FUNÇÃO para mostrar a foto separadamente
+function mostrarFotoParaCompartilhar() {
+    // Cria um link para download da foto
+    const link = document.createElement('a');
+    link.href = fotoAtual;
+    link.download = `relatorio_${new Date().getTime()}.jpg`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('📸 Foto baixada!\n\nAgora no WhatsApp:\n1. Envie o texto que já está copiado\n2. Em seguida, anexe a foto que acabou de baixar');
+}
+
+// FUNÇÃO melhorada para WhatsApp
+function abrirWhatsAppComTextoEFoto(texto) {
+    const textoCodificado = encodeURIComponent(texto + '\n\n📸 *FOTO ANEXADA*');
+    
+    // Baixa a foto primeiro
+    const linkFoto = document.createElement('a');
+    linkFoto.href = fotoAtual;
+    linkFoto.download = 'foto_relatorio.jpg';
+    linkFoto.click();
+    
+    // Depois abre WhatsApp
+    setTimeout(() => {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            window.location.href = `whatsapp://send?text=${textoCodificado}`;
+        } else {
+            window.open(`https://web.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+            alert('📱 WhatsApp Web aberto!\n\n1. Envie o texto\n2. Anexe a foto "foto_relatorio.jpg" que foi baixada');
+        }
+    }, 1000);
+}
 
 // NOVA FUNÇÃO: Gera e copia o relatório
 function gerarECopiarRelatorio() {

@@ -11,7 +11,10 @@
 
 <body>
     <div class="container">
-        <h1>Relatório Predial</h1>
+        <div class="header">
+            <img style="border-radius: 5px;" src="img/favicon-32x32.png" alt="">
+            <h1>Relatório</h1>
+        </div>
         <form>
 
             <label for="select" class="select">
@@ -22,6 +25,7 @@
                 </select>
                 <select name="slcLocal" id="slcLocal">
                     <option value="externa">Área externa</option>
+                    <option value="terreo">Térreo</option>
                     <option value="pav1">1° Pavimento</option>
                     <option value="pav2">2° Pavimento</option>
                     <option value="pav3">3° Pavimento</option>
@@ -31,12 +35,12 @@
             </label>
 
             <label for="inEmpresa">
-                Empresa: <input type="text" name="inEmpresa" id="inEmpresa">
+                Empresa: <input type="text" name="inEmpresa" id="inEmpresa" value="Engemon">
             </label>
 
             <label for="inSolicitante">
                 Solicitante: <input type="text" name="inSolicitante" id="inSolicitante
-                ">
+                " value="Bismarck">
             </label>
 
             <label for="inFuncionario">
@@ -64,7 +68,7 @@
                 </fieldset>
             </label>
 
-            <input type="submit" value="Enviar">
+            <span id="submit"><input type="submit" value="Enviar"></span>
 
         </form>
 

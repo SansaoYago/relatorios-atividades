@@ -60,6 +60,10 @@ form input{
     float: right;
 }
 
+form input[type="radio"] {
+    float: none;
+}
+
 form input[type="text"]:focus, textarea:focus {
     background-color: aquamarine;
     text-indent: 1px;

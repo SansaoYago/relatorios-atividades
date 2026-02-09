@@ -9,6 +9,9 @@ const refazer = document.getElementById("refazer")
 const preview = document.getElementById("preview")
 const acoes = document.querySelector(".acoes")
 const fotoContainer = document.getElementById('foto-container')
+const radioSim = document.getElementById('inRondaSim')
+const radioNao = document.getElementById('inRondaNao')
+const textarea = document.getElementById('inDescricao')
 
 let streamAtual = null
 let fotoAtual = null
@@ -21,6 +24,70 @@ function getHoraAtual() {
         hour12: false
     });
 }
+
+// Texto específico para quando Ronda for "Sim"
+const TEXTO_RONDA_SIM = `✅ *Inspeção técnica de infraestrutura:* Concluída a ronda operacional em todas as instalações sanitárias.
+📋 *Checklist de verificação:*
+
+- Louças: Condições de conservação e higiene.
+
+- Acessos: Funcionamento de portas e trincos.
+
+- Hidráulica: Sistemas de descarga e fluxo de água.
+`
+
+// Variável para guardar o texto personalizado
+let textoPersonalizado = ''
+
+// Adiciona eventos aos radios
+radioSim.addEventListener('change', function () {
+    if (this.checked) {
+        // Se já existe texto personalizado, mantém. Senão, usa o padrão
+        textarea.value = textoPersonalizado || TEXTO_RONDA_SIM
+        console.log('✅ Ronda: Sim')
+    }
+})
+
+radioNao.addEventListener('change', function () {
+    if (this.checked) {
+        // Salva o texto atual antes de limpar (caso o usuário queira voltar)
+        if (textarea.value.trim() !== '' && textarea.value !== TEXTO_RONDA_SIM) {
+            textoPersonalizado = textarea.value
+            console.log('Texto personalizado salvo:', textoPersonalizado.substring(0, 50) + '...')
+        }
+        textarea.value = ''
+        console.log('❌ Ronda: Não - Textarea limpo')
+    }
+})
+
+// Evento para salvar texto personalizado quando o usuário modifica
+textarea.addEventListener('blur', function () {
+    if (radioSim.checked && this.value !== TEXTO_RONDA_SIM) {
+        textoPersonalizado = this.value
+        console.log('Texto personalizado atualizado')
+    }
+})
+
+// Verifica estado inicial
+if (radioSim.checked) {
+    textarea.value = TEXTO_RONDA_SIM
+}
+
+// Previne que o texto padrão seja apagado acidentalmente
+textarea.addEventListener('keydown', function (e) {
+    if (radioSim.checked && this.value === TEXTO_RONDA_SIM) {
+        // Se o usuário pressionar Backspace ou Delete no texto padrão,
+        // pergunta se quer mudar para "Não"
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            if (confirm('Deseja alterar para "Ronda: Não" para editar o texto livremente?')) {
+                radioNao.checked = true
+                textarea.value = ''
+                textoPersonalizado = ''
+            }
+            e.preventDefault()
+        }
+    }
+})
 
 camera.addEventListener("click", () => {
     modal.classList.add("ativa")
@@ -183,33 +250,33 @@ function adicionarFoto(src) {
 // Evento de envio
 // MODIFIQUE APENAS O EVENTO DE SUBMIT E A FUNÇÃO mostrarDadosParaWhatsApp:
 
-form.addEventListener('submit', async function(e) {
+form.addEventListener('submit', async function (e) {
     e.preventDefault();
-    
+
     const etapa = document.getElementById('slcEtapa').value;
-    
+
     // Validação básica
     if (!fotoAtual) {
         alert('Por favor, tire uma foto antes de enviar!');
         return;
     }
-    
+
     // Lógica de captura de horários
     if (etapa === 'antes') {
         const horaInicio = getHoraAtual();
         document.getElementById('horaInicio').value = horaInicio;
         console.log(`🕒 Hora início capturada: ${horaInicio}`);
-    } 
+    }
     else if (etapa === 'depois') {
         const horaTermino = getHoraAtual();
         document.getElementById('horaTermino').value = horaTermino;
         console.log(`⏱️ Hora término capturada: ${horaTermino}`);
     }
-    
+
     // Gera o relatório
     const dados = coletarDadosFormulario();
     const textoWhatsApp = formatarParaWhatsApp(dados);
-    
+
     // Tenta compartilhar com imagem
     await compartilharComFoto(textoWhatsApp);
 });
@@ -220,7 +287,7 @@ async function compartilharComFoto(texto) {
         // Converte a foto de dataURL para Blob
         const blob = await dataURLtoBlob(fotoAtual);
         const file = new File([blob], 'relatorio_foto.jpg', { type: 'image/jpeg' });
-        
+
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             // Compartilha texto + imagem (suportado em alguns navegadores)
             await navigator.share({
@@ -257,11 +324,11 @@ function dataURLtoBlob(dataURL) {
     const bstr = atob(parts[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    
+
     while (n--) {
         u8arr[n] = bstr.charCodeAt(n);
     }
-    
+
     return new Blob([u8arr], { type: mime });
 }
 
@@ -275,24 +342,24 @@ function mostrarFotoParaCompartilhar() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     alert('📸 Foto baixada!\n\nAgora no WhatsApp:\n1. Envie o texto que já está copiado\n2. Em seguida, anexe a foto que acabou de baixar');
 }
 
 // FUNÇÃO melhorada para WhatsApp
 function abrirWhatsAppComTextoEFoto(texto) {
     const textoCodificado = encodeURIComponent(texto + '\n\n📸 *FOTO ANEXADA*');
-    
+
     // Baixa a foto primeiro
     const linkFoto = document.createElement('a');
     linkFoto.href = fotoAtual;
     linkFoto.download = 'foto_relatorio.jpg';
     linkFoto.click();
-    
+
     // Depois abre WhatsApp
     setTimeout(() => {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
+
         if (isMobile) {
             window.location.href = `whatsapp://send?text=${textoCodificado}`;
         } else {

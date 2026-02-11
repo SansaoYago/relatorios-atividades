@@ -12,6 +12,9 @@ const fotoContainer = document.getElementById('foto-container')
 const radioSim = document.getElementById('inRondaSim')
 const radioNao = document.getElementById('inRondaNao')
 const textarea = document.getElementById('inDescricao')
+const solicitante = document.querySelector("#slcSolicitante")
+const selectArea = document.querySelector("#slcArea")
+const selectEtapa = document.querySelector("#slcEtapa")
 
 let streamAtual = null
 let fotoAtual = null
@@ -44,6 +47,10 @@ radioSim.addEventListener('change', function () {
     if (this.checked) {
         // Se já existe texto personalizado, mantém. Senão, usa o padrão
         textarea.value = textoPersonalizado || TEXTO_RONDA_SIM
+        solicitante.selectedIndex = 1
+        selectArea.selectedIndex = 8
+        selectEtapa.selectedIndex = 3
+        form.inLocal.value = "Banheiro"
         console.log('✅ Ronda: Sim')
     }
 })
@@ -56,6 +63,10 @@ radioNao.addEventListener('change', function () {
             console.log('Texto personalizado salvo:', textoPersonalizado.substring(0, 50) + '...')
         }
         textarea.value = ''
+        solicitante.selectedIndex = 0;
+        selectArea.selectedIndex = 0
+        selectEtapa.selectedIndex = 0
+        form.inLocal.value = ''
         console.log('❌ Ronda: Não - Textarea limpo')
     }
 })

@@ -508,7 +508,7 @@ function formatarParaWhatsApp(dados) {
         'pav4': '4° Pavimento',
         'pav5': '5° Pavimento',
         'externa': 'Área Externa',
-        'telhado': 'Telhado'
+        'NextStream': 'NextStream'
     }[dados.area] || dados.area;
 
     return `🔧 *RELATÓRIO DE SERVIÇO*

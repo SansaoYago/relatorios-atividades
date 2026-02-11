@@ -405,10 +405,10 @@ function gerarECopiarRelatorio() {
 function coletarDadosFormulario() {
     return {
         empresa: document.getElementById('inEmpresa').value,
-        solicitante: document.getElementById('inSolicitante').value,
+        solicitante: document.getElementById('slcSolicitante').value,
         funcionario: document.getElementById('inFuncionario').value,
         etapa: document.getElementById('slcEtapa').value,
-        area: document.getElementById('slcLocal').value,
+        area: document.getElementById('slcArea').value,
         local: document.getElementById('inLocal').value,
         descricao: document.getElementById('inDescricao').value,
         horaInicio: document.getElementById('horaInicio').value,

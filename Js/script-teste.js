@@ -18,231 +18,6 @@ const selectEtapa = document.querySelector("#slcEtapa")
 
 let streamAtual = null
 let fotoAtual = null
-let cameraProfissional = null
-
-// ============================================
-// SISTEMA PROFISSIONAL DE CONTROLE DE CÂMERA
-// ============================================
-
-class CameraProfissional {
-    constructor(videoElement) {
-        this.video = videoElement;
-        this.stream = null;
-        this.track = null;
-        this.cameras = [];
-        this.suporta = {
-            focusMode: false,
-            focusDistance: false,
-            zoom: false,
-            torch: false,
-            exposureMode: false
-        };
-    }
-
-    // 1. DETECTA TUDO QUE A CÂMERA SUPORTA
-    async detectarCapacidades() {
-        if (!navigator.mediaDevices?.enumerateDevices) {
-            console.warn('API enumerateDevices não suportada');
-            return;
-        }
-
-        // Lista todas as câmeras
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        this.cameras = devices.filter(d => d.kind === 'videoinput');
-        
-        console.log(`📹 Total de câmeras: ${this.cameras.length}`);
-        this.cameras.forEach((cam, i) => {
-            console.log(`Câmera ${i + 1}: ${cam.label || 'Sem nome'}`);
-        });
-    }
-
-    // 2. INICIA COM DETECÇÃO AUTOMÁTICA DE RECURSOS
-    async iniciarCamera(usarCameraTraseira = true) {
-        try {
-            await this.detectarCapacidades();
-            
-            // Configuração progressiva com TODOS os parâmetros avançados
-            const constraints = {
-                video: {
-                    facingMode: usarCameraTraseira ? 'environment' : 'user',
-                    width: { ideal: 1920, max: 3840 },
-                    height: { ideal: 1080, max: 2160 },
-                    frameRate: { ideal: 30 },
-                    advanced: [
-                        // TENTATIVA 1: Modo macro explícito
-                        { 
-                            focusMode: 'macro',
-                            exposureMode: 'continuous',
-                            whiteBalanceMode: 'continuous'
-                        },
-                        // TENTATIVA 2: Foco manual próximo (força macro)
-                        { 
-                            focusMode: 'manual',
-                            focusDistance: 0.1,
-                            exposureMode: 'manual',
-                            exposureTime: 10000
-                        },
-                        // TENTATIVA 3: Foco contínuo (fallback)
-                        { 
-                            focusMode: 'continuous',
-                            exposureMode: 'continuous'
-                        }
-                    ]
-                }
-            };
-
-            console.log('🎯 Aplicando constraints avançadas');
-            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            this.video.srcObject = this.stream;
-            this.track = this.stream.getVideoTracks()[0];
-            
-            // Aguarda vídeo carregar
-            await new Promise(resolve => {
-                this.video.onloadedmetadata = () => {
-                    this.video.play();
-                    resolve();
-                };
-            });
-            
-            // Verifica o que REALMENTE foi ativado
-            const settings = this.track.getSettings();
-            const capabilities = this.track.getCapabilities?.() || {};
-            
-            console.log('✅ Câmera ativada!');
-            console.log('📷 Resolução:', settings.width, 'x', settings.height);
-            console.log('🔍 FocusMode ATUAL:', settings.focusMode);
-            console.log('🎯 FocusMode SUPORTADO:', capabilities.focusMode);
-            console.log('🔬 Zoom SUPORTADO:', capabilities.zoom);
-            
-            // Salva o que realmente funciona
-            this.suporta = {
-                focusMode: !!capabilities.focusMode,
-                focusDistance: !!capabilities.focusDistance,
-                zoom: !!capabilities.zoom,
-                torch: !!capabilities.torch,
-                exposureMode: !!capabilities.exposureMode
-            };
-            
-            // Tenta ativar modo macro automaticamente
-            if (this.suporta.focusMode) {
-                await this.ativarModoMacro();
-            }
-            
-            return settings;
-            
-        } catch (error) {
-            console.error('❌ Erro na câmera:', error);
-            
-            // FALLBACK: Tenta sem os advanced
-            try {
-                console.log('⚠️ Tentando fallback básico...');
-                this.stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: usarCameraTraseira ? 'environment' : 'user',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
-                this.video.srcObject = this.stream;
-                this.track = this.stream.getVideoTracks()[0];
-                await this.video.play();
-                console.log('✅ Câmera iniciada em modo fallback');
-            } catch (e) {
-                throw new Error('Não foi possível acessar câmera');
-            }
-        }
-    }
-
-    // 3. ATIVAR MODO MACRO
-    async ativarModoMacro() {
-        if (!this.track) return false;
-        
-        try {
-            // Tenta primeiro o modo macro nativo
-            await this.track.applyConstraints({
-                advanced: [{ focusMode: 'macro' }]
-            });
-            console.log('🔬 Modo macro ATIVADO!');
-            return true;
-        } catch (e) {
-            try {
-                // Tenta foco manual próximo
-                await this.track.applyConstraints({
-                    advanced: [{ 
-                        focusMode: 'manual',
-                        focusDistance: 0.1 
-                    }]
-                });
-                console.log('🎯 Foco manual próximo ativado!');
-                return true;
-            } catch (e2) {
-                console.log('⚠️ Modo macro não suportado neste dispositivo');
-                return false;
-            }
-        }
-    }
-
-    // 4. AJUSTAR ZOOM
-    async setZoom(fator) {
-        if (!this.track || !this.suporta.zoom) return false;
-        
-        try {
-            const capabilities = this.track.getCapabilities();
-            const min = capabilities.zoom.min || 1;
-            const max = capabilities.zoom.max || 5;
-            
-            // Limita o zoom dentro do range suportado
-            const zoomValue = Math.min(Math.max(fator, min), max);
-            
-            await this.track.applyConstraints({
-                advanced: [{ zoom: zoomValue }]
-            });
-            console.log(`🔍 Zoom ajustado para: ${zoomValue}x`);
-            return true;
-        } catch (e) {
-            console.warn('Zoom não suportado');
-            return false;
-        }
-    }
-
-    // 5. CAPTURA COM ALTA QUALIDADE
-    capturarFoto() {
-        if (!this.video.videoWidth) return null;
-        
-        // Usa o canvas existente
-        const ctx = canvas.getContext('2d', {
-            alpha: false,
-            desynchronized: true
-        });
-        
-        canvas.width = this.video.videoWidth;
-        canvas.height = this.video.videoHeight;
-        
-        // Configura qualidade de renderização
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        
-        // Desenha o frame atual
-        ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
-        
-        // Retorna com qualidade máxima
-        return canvas.toDataURL('image/jpeg', 0.95);
-    }
-
-    // 6. DESTRUIR
-    destroy() {
-        if (this.stream) {
-            this.stream.getTracks().forEach(t => t.stop());
-            this.stream = null;
-            this.track = null;
-        }
-    }
-}
-
-// ============================================
-// FUNÇÕES ORIGINAIS DO SISTEMA
-// ============================================
 
 function getHoraAtual() {
     const agora = new Date();
@@ -270,6 +45,7 @@ let textoPersonalizado = ''
 // Adiciona eventos aos radios
 radioSim.addEventListener('change', function () {
     if (this.checked) {
+        // Se já existe texto personalizado, mantém. Senão, usa o padrão
         textarea.value = textoPersonalizado || TEXTO_RONDA_SIM
         solicitante.selectedIndex = 1
         selectArea.selectedIndex = 8
@@ -281,19 +57,21 @@ radioSim.addEventListener('change', function () {
 
 radioNao.addEventListener('change', function () {
     if (this.checked) {
+        // Salva o texto atual antes de limpar (caso o usuário queira voltar)
         if (textarea.value.trim() !== '' && textarea.value !== TEXTO_RONDA_SIM) {
             textoPersonalizado = textarea.value
-            console.log('Texto personalizado salvo')
+            console.log('Texto personalizado salvo:', textoPersonalizado.substring(0, 50) + '...')
         }
         textarea.value = ''
         solicitante.selectedIndex = 0;
         selectArea.selectedIndex = 0
         selectEtapa.selectedIndex = 0
         form.inLocal.value = ''
-        console.log('❌ Ronda: Não')
+        console.log('❌ Ronda: Não - Textarea limpo')
     }
 })
 
+// Evento para salvar texto personalizado quando o usuário modifica
 textarea.addEventListener('blur', function () {
     if (radioSim.checked && this.value !== TEXTO_RONDA_SIM) {
         textoPersonalizado = this.value
@@ -306,8 +84,11 @@ if (radioSim.checked) {
     textarea.value = TEXTO_RONDA_SIM
 }
 
+// Previne que o texto padrão seja apagado acidentalmente
 textarea.addEventListener('keydown', function (e) {
     if (radioSim.checked && this.value === TEXTO_RONDA_SIM) {
+        // Se o usuário pressionar Backspace ou Delete no texto padrão,
+        // pergunta se quer mudar para "Não"
         if (e.key === 'Backspace' || e.key === 'Delete') {
             if (confirm('Deseja alterar para "Ronda: Não" para editar o texto livremente?')) {
                 radioNao.checked = true
@@ -319,193 +100,64 @@ textarea.addEventListener('keydown', function (e) {
     }
 })
 
-// ============================================
-// EVENTOS DA CÂMERA MELHORADOS
-// ============================================
-
-camera.addEventListener("click", async () => {
+camera.addEventListener("click", () => {
     modal.classList.add("ativa")
-    acoes.classList.remove("visivel")
+    acoes.classList.remove("visivel") // Esconde botões de ação
 
     // Para a stream anterior se existir
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop())
-        streamAtual = null
     }
 
-    try {
-        // Inicializa o sistema profissional de câmera
-        cameraProfissional = new CameraProfissional(video)
-        await cameraProfissional.iniciarCamera(true)
-        
-        // Guarda a stream para compatibilidade
-        streamAtual = cameraProfissional.stream
+    const constraints = {
+        video: {
+            // "environment" foca na câmera traseira
+            facingMode: { exact: "environment" },
+            // Forçar uma resolução mínima ajuda o navegador a escolher a câmera principal
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 }
+        }
+    };
 
-        // Cria botões de controle avançados
-        criarControlesCamera()
-        
+    navigator.mediaDevices.getUserMedia(constraints)
+
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        }
+    }).then(stream => {
+        streamAtual = stream
+        video.srcObject = stream
+
         // Mostra video, esconde preview
         video.classList.remove("escondido")
         preview.classList.add("escondido")
         captura.classList.remove("escondido")
-        
-        console.log('📷 Sistema profissional de câmera ativado')
-        
-    } catch (error) {
+
+        console.log('Câmera ativada')
+    }).catch(error => {
         console.error('Erro ao acessar câmera:', error)
         alert('Não foi possível acessar a câmera. Verifique as permissões.')
-    }
+    })
 })
 
-// Função para criar controles avançados da câmera
-function criarControlesCamera() {
-    // Remove controles existentes
-    const controlesAntigos = document.querySelectorAll('.controle-camera')
-    controlesAntigos.forEach(c => c.remove())
-    
-    // Container para controles
-    const containerControles = document.createElement('div')
-    containerControles.className = 'controle-camera'
-    containerControles.style.cssText = `
-        position: absolute;
-        bottom: 20px;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        padding: 10px;
-        z-index: 100;
-    `
-    
-    // Botão Modo Macro
-    if (cameraProfissional.suporta.focusMode) {
-        const btnMacro = document.createElement('button')
-        btnMacro.textContent = '🔬 Macro'
-        btnMacro.style.cssText = `
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        `
-        btnMacro.onclick = async () => {
-            await cameraProfissional.ativarModoMacro()
-        }
-        containerControles.appendChild(btnMacro)
-    }
-    
-    // Botão Zoom In
-    if (cameraProfissional.suporta.zoom) {
-        const btnZoomIn = document.createElement('button')
-        btnZoomIn.textContent = '🔍 Zoom +'
-        btnZoomIn.style.cssText = `
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        `
-        let zoomAtual = 1.0
-        btnZoomIn.onclick = async () => {
-            zoomAtual = Math.min(zoomAtual + 0.5, 5.0)
-            await cameraProfissional.setZoom(zoomAtual)
-        }
-        containerControles.appendChild(btnZoomIn)
-        
-        const btnZoomOut = document.createElement('button')
-        btnZoomOut.textContent = '🔍 Zoom -'
-        btnZoomOut.style.cssText = `
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        `
-        btnZoomOut.onclick = async () => {
-            zoomAtual = Math.max(zoomAtual - 0.5, 1.0)
-            await cameraProfissional.setZoom(zoomAtual)
-        }
-        containerControles.appendChild(btnZoomOut)
-    }
-    
-    // Botão Alternar Câmera
-    if (cameraProfissional.cameras.length > 1) {
-        const btnAlternar = document.createElement('button')
-        btnAlternar.textContent = '🔄 Trocar Câmera'
-        btnAlternar.style.cssText = `
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        `
-        btnAlternar.onclick = async () => {
-            // Encontra próxima câmera
-            const settings = cameraProfissional.track?.getSettings()
-            const currentIndex = cameraProfissional.cameras.findIndex(c => c.deviceId === settings?.deviceId)
-            const nextIndex = (currentIndex + 1) % cameraProfissional.cameras.length
-            const proximaCamera = cameraProfissional.cameras[nextIndex]
-            
-            if (proximaCamera) {
-                // Para stream atual
-                cameraProfissional.destroy()
-                
-                // Inicia com nova câmera
-                cameraProfissional = new CameraProfissional(video)
-                await cameraProfissional.iniciarCameraPorId(proximaCamera.deviceId)
-                streamAtual = cameraProfissional.stream
-                
-                // Recria controles
-                criarControlesCamera()
-            }
-        }
-        containerControles.appendChild(btnAlternar)
-    }
-    
-    modal.querySelector('.modal-content').appendChild(containerControles)
-}
-
-// Método adicional para iniciar com ID específico
-CameraProfissional.prototype.iniciarCameraPorId = async function(deviceId) {
-    try {
-        this.stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                deviceId: { exact: deviceId },
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            }
-        })
-        this.video.srcObject = this.stream
-        this.track = this.stream.getVideoTracks()[0]
-        await this.video.play()
-        
-        const settings = this.track.getSettings()
-        console.log('✅ Câmera alternada:', settings.deviceId)
-        
-    } catch (error) {
-        console.error('Erro ao alternar câmera:', error)
-    }
-}
-
 captura.addEventListener("click", () => {
-    // Usa o sistema profissional se disponível
-    if (cameraProfissional) {
-        preview.src = cameraProfissional.capturarFoto()
-    } else {
-        // Fallback para o método antigo
-        video.pause()
-        const ctx = canvas.getContext("2d")
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        preview.src = canvas.toDataURL("image/jpeg", 0.95)
-        video.play()
-    }
+    // Pausa o vídeo temporariamente para capturar
+    video.pause()
+
+    const ctx = canvas.getContext("2d")
+
+    // Configura o canvas
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    // Desenha o frame atual
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    // Converte para data URL
+    preview.src = canvas.toDataURL("image/jpeg", 0.8)
 
     // Mostra os botões de ação
     acoes.classList.add("visivel")
@@ -514,12 +166,11 @@ captura.addEventListener("click", () => {
     video.classList.add("escondido")
     preview.classList.remove("escondido")
     captura.classList.add("escondido")
-    
-    // Esconde controles avançados da câmera
-    const controles = document.querySelectorAll('.controle-camera')
-    controles.forEach(c => c.remove())
 
-    console.log('📸 Foto capturada com alta qualidade')
+    // Retoma o vídeo
+    video.play()
+
+    console.log('Foto capturada. Preview src definido:', preview.src.substring(0, 50) + '...')
 })
 
 refazer.addEventListener("click", () => {
@@ -528,17 +179,18 @@ refazer.addEventListener("click", () => {
     video.classList.remove("escondido")
     preview.classList.add("escondido")
     captura.classList.remove("escondido")
-    
-    // Recria controles se necessário
-    if (cameraProfissional) {
-        criarControlesCamera()
-    }
 })
 
 confirmar.addEventListener("click", () => {
+    // Verifica se há uma foto válida
     if (preview.src && !preview.src.includes('undefined')) {
+        // Remove foto anterior
         removerFotoAnterior()
+
+        // Adiciona nova foto
         adicionarFoto(preview.src)
+
+        // Fecha modal
         fecharModal()
     } else {
         alert('Por favor, capture uma foto primeiro!')
@@ -550,18 +202,10 @@ function fecharModal() {
     acoes.classList.remove("visivel")
 
     // Para a stream
-    if (cameraProfissional) {
-        cameraProfissional.destroy()
-        cameraProfissional = null
-    }
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop())
         streamAtual = null
     }
-    
-    // Remove controles
-    const controles = document.querySelectorAll('.controle-camera')
-    controles.forEach(c => c.remove())
 }
 
 function removerFotoAnterior() {
@@ -573,11 +217,13 @@ function removerFotoAnterior() {
 }
 
 function adicionarFoto(src) {
+    // Remove mensagem "sem foto"
     const semFoto = fotoContainer.querySelector('.sem-foto')
     if (semFoto) {
         semFoto.remove()
     }
 
+    // Cria elementos
     const fotoDiv = document.createElement('div')
     fotoDiv.className = 'foto-preview'
 
@@ -590,23 +236,28 @@ function adicionarFoto(src) {
     removerBtn.innerHTML = '×'
     removerBtn.title = 'Remover foto'
 
+    // Evento para remover
     removerBtn.addEventListener('click', (e) => {
         e.stopPropagation()
         fotoDiv.remove()
         fotoAtual = null
 
+        // Recria mensagem "sem foto"
         const semFotoDiv = document.createElement('div')
         semFotoDiv.className = 'sem-foto'
         semFotoDiv.textContent = 'Nenhuma foto tirada'
         fotoContainer.appendChild(semFotoDiv)
     })
 
+    // Monta estrutura
     fotoDiv.appendChild(img)
     fotoDiv.appendChild(removerBtn)
     fotoContainer.appendChild(fotoDiv)
 
+    // Armazena foto
     fotoAtual = src
 
+    // Animação
     fotoDiv.style.opacity = '0'
     fotoDiv.style.transform = 'scale(0.9)'
 
@@ -614,51 +265,54 @@ function adicionarFoto(src) {
         fotoDiv.style.transition = 'all 0.3s ease'
         fotoDiv.style.opacity = '1'
         fotoDiv.style.transform = 'scale(1)'
-        console.log('✅ Foto adicionada ao formulário')
+
+        console.log('Foto adicionada ao formulário')
     }, 10)
 }
 
-// ============================================
-// EVENTO DE ENVIO (mantido igual)
-// ============================================
+// Evento de envio
+// MODIFIQUE APENAS O EVENTO DE SUBMIT E A FUNÇÃO mostrarDadosParaWhatsApp:
 
 form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const etapa = document.getElementById('slcEtapa').value;
 
+    // Validação básica
     if (!fotoAtual) {
         alert('Por favor, tire uma foto antes de enviar!');
         return;
     }
 
+    // Lógica de captura de horários
     if (etapa === 'antes') {
         const horaInicio = getHoraAtual();
         document.getElementById('horaInicio').value = horaInicio;
-        console.log(`🕒 Hora início: ${horaInicio}`);
+        console.log(`🕒 Hora início capturada: ${horaInicio}`);
     }
     else if (etapa === 'depois') {
         const horaTermino = getHoraAtual();
         document.getElementById('horaTermino').value = horaTermino;
-        console.log(`⏱️ Hora término: ${horaTermino}`);
+        console.log(`⏱️ Hora término capturada: ${horaTermino}`);
     }
 
+    // Gera o relatório
     const dados = coletarDadosFormulario();
     const textoWhatsApp = formatarParaWhatsApp(dados);
 
+    // Tenta compartilhar com imagem
     await compartilharComFoto(textoWhatsApp);
 });
 
-// ============================================
-// FUNÇÕES DE COMPARTILHAMENTO (mantidas iguais)
-// ============================================
-
+// NOVA FUNÇÃO: Compartilhar texto + foto
 async function compartilharComFoto(texto) {
     try {
+        // Converte a foto de dataURL para Blob
         const blob = await dataURLtoBlob(fotoAtual);
         const file = new File([blob], 'relatorio_foto.jpg', { type: 'image/jpeg' });
 
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Compartilha texto + imagem (suportado em alguns navegadores)
             await navigator.share({
                 title: 'Relatório de Serviço',
                 text: texto,
@@ -666,6 +320,7 @@ async function compartilharComFoto(texto) {
             });
             alert('✅ Relatório compartilhado com foto!');
         } else {
+            // Fallback: compartilha apenas texto e instrui sobre a foto
             if (navigator.share) {
                 await navigator.share({
                     title: 'Relatório de Serviço',
@@ -674,15 +329,18 @@ async function compartilharComFoto(texto) {
                 alert('✅ Texto do relatório compartilhado!\n\nAgora compartilhe a foto abaixo:');
                 mostrarFotoParaCompartilhar();
             } else {
+                // Fallback para desktop
                 abrirWhatsAppComTextoEFoto(texto);
             }
         }
     } catch (error) {
         console.error('Erro ao compartilhar:', error);
+        // Fallback final
         abrirWhatsAppComTextoEFoto(texto);
     }
 }
 
+// FUNÇÃO para converter dataURL para Blob
 function dataURLtoBlob(dataURL) {
     const parts = dataURL.split(',');
     const mime = parts[0].match(/:(.*?);/)[1];
@@ -697,7 +355,9 @@ function dataURLtoBlob(dataURL) {
     return new Blob([u8arr], { type: mime });
 }
 
+// FUNÇÃO para mostrar a foto separadamente
 function mostrarFotoParaCompartilhar() {
+    // Cria um link para download da foto
     const link = document.createElement('a');
     link.href = fotoAtual;
     link.download = `relatorio_${new Date().getTime()}.jpg`;
@@ -709,14 +369,17 @@ function mostrarFotoParaCompartilhar() {
     alert('📸 Foto baixada!\n\nAgora no WhatsApp:\n1. Envie o texto que já está copiado\n2. Em seguida, anexe a foto que acabou de baixar');
 }
 
+// FUNÇÃO melhorada para WhatsApp
 function abrirWhatsAppComTextoEFoto(texto) {
     const textoCodificado = encodeURIComponent(texto + '\n\n📸 *FOTO ANEXADA*');
 
+    // Baixa a foto primeiro
     const linkFoto = document.createElement('a');
     linkFoto.href = fotoAtual;
     linkFoto.download = 'foto_relatorio.jpg';
     linkFoto.click();
 
+    // Depois abre WhatsApp
     setTimeout(() => {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -724,11 +387,33 @@ function abrirWhatsAppComTextoEFoto(texto) {
             window.location.href = `whatsapp://send?text=${textoCodificado}`;
         } else {
             window.open(`https://web.whatsapp.com/send?text=${textoCodificado}`, '_blank');
-            alert('📱 WhatsApp Web aberto!\n\n1. Envie o texto\n2. Anexe a foto "foto_relatorio.jpg"');
+            alert('📱 WhatsApp Web aberto!\n\n1. Envie o texto\n2. Anexe a foto "foto_relatorio.jpg" que foi baixada');
         }
     }, 1000);
 }
 
+// NOVA FUNÇÃO: Gera e copia o relatório
+function gerarECopiarRelatorio() {
+    const dados = coletarDadosFormulario();
+    const textoWhatsApp = formatarParaWhatsApp(dados);
+
+    // Copia para área de transferência
+    navigator.clipboard.writeText(textoWhatsApp)
+        .then(() => {
+            // Mostra o relatório na tela para o usuário ver
+            mostrarRelatorioNaTela(textoWhatsApp);
+
+            alert('📋 RELATÓRIO COPIADO!\n\nO texto foi copiado para sua área de transferência.\n\nAgora vá no WhatsApp e COLE no grupo!');
+        })
+        .catch(err => {
+            console.error('Erro ao copiar:', err);
+            // Fallback: mostra na tela para copiar manualmente
+            mostrarRelatorioNaTela(textoWhatsApp);
+            alert('📋 RELATÓRIO PRONTO!\n\nSelecione e copie o texto abaixo:\n\n' + textoWhatsApp.substring(0, 200) + '...');
+        });
+}
+
+// FUNÇÃO PARA COLETAR TODOS OS DADOS
 function coletarDadosFormulario() {
     return {
         empresa: document.getElementById('inEmpresa').value,
@@ -744,7 +429,66 @@ function coletarDadosFormulario() {
     };
 }
 
+// FUNÇÃO PARA MOSTRAR NA TELA (opcional)
+function mostrarRelatorioNaTela(texto) {
+    // Cria ou atualiza um elemento para mostrar o relatório
+    let relatorioDiv = document.getElementById('relatorio-gerado');
+
+    if (!relatorioDiv) {
+        relatorioDiv = document.createElement('div');
+        relatorioDiv.id = 'relatorio-gerado';
+        relatorioDiv.style.margin = '20px 0';
+        relatorioDiv.style.padding = '15px';
+        relatorioDiv.style.backgroundColor = '#f0f0f0';
+        relatorioDiv.style.borderRadius = '5px';
+        relatorioDiv.style.whiteSpace = 'pre-wrap';
+        relatorioDiv.style.fontFamily = 'monospace';
+        relatorioDiv.style.maxHeight = '300px';
+        relatorioDiv.style.overflow = 'auto';
+        document.querySelector('form').appendChild(relatorioDiv);
+    }
+
+    relatorioDiv.textContent = texto;
+    relatorioDiv.innerHTML = texto.replace(/\n/g, '<br>').replace(/\*/g, '<strong>').replace(/\*/g, '</strong>');
+}
+
+// FUNÇÃO PARA CALCULAR TEMPO TOTAL (apenas para etapa "depois")
+function calcularTempoTotal(inicio, termino) {
+    if (!inicio || !termino) return '--:--';
+
+    // Converte "HH:MM" para minutos
+    const [h1, m1] = inicio.split(':').map(Number);
+    const [h2, m2] = termino.split(':').map(Number);
+
+    const totalMinutos = (h2 * 60 + m2) - (h1 * 60 + m1);
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+
+    return `${horas}h${minutos.toString().padStart(2, '0')}min`;
+}
+
+function mostrarDadosParaWhatsApp() {
+    const dados = {
+        empresa: document.getElementById('inEmpresa').value,
+        solicitante: document.getElementById('inSolicitante').value, // CORRIGIDO
+        funcionario: document.getElementById('inFuncionario').value,
+        etapa: document.getElementById('slcEtapa').value,
+        area: document.getElementById('slcLocal').value,
+        local: document.getElementById('inLocal').value,
+        descricao: document.getElementById('inDescricao').value,
+        horaInicio: document.getElementById('horaInicio').value,
+        horaTermino: document.getElementById('horaTermino').value,
+        data: new Date().toLocaleDateString('pt-BR')
+    };
+
+    const textoFormatado = formatarParaWhatsApp(dados);
+    console.log('📱 TEXTO PARA WHATSAPP:');
+    console.log(textoFormatado);
+    console.log('----------------------');
+}
+
 function formatarParaWhatsApp(dados) {
+    // Converte valores do select para textos amigáveis
     const textoEtapa = {
         'antes': 'ANTES',
         'durante': 'DURANTE',

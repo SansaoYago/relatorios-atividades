@@ -100,48 +100,53 @@ textarea.addEventListener('keydown', function (e) {
     }
 })
 
-camera.addEventListener("click", () => {
+camera.addEventListener("click", async () => { // Adicionei 'async' aqui
     modal.classList.add("ativa")
-    acoes.classList.remove("visivel") // Esconde botões de ação
+    acoes.classList.remove("visivel")
 
-    // Para a stream anterior se existir
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop())
     }
 
-    const constraints = {
-        video: {
-            // "environment" foca na câmera traseira
-            facingMode: { exact: "environment" },
-            // Forçar uma resolução mínima ajuda o navegador a escolher a câmera principal
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 }
-        }
-    };
+    try {
+        // 1. Listar todos os dispositivos de vídeo
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
-    navigator.mediaDevices.getUserMedia(constraints)
+        // 2. Lógica para ignorar a lente Macro e pegar a Principal
+        // Invertemos a lista porque em muitos Androids a câmera principal (1x) 
+        // aparece depois da macro ou de sensores auxiliares.
+        let selectedDevice = videoDevices.reverse().find(d => 
+            !d.label.toLowerCase().includes('macro') && 
+            !d.label.toLowerCase().includes('wide')
+        ) || videoDevices[0];
 
-    navigator.mediaDevices.getUserMedia({
-        video: {
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-        }
-    }).then(stream => {
-        streamAtual = stream
-        video.srcObject = stream
+        // 3. Configurações robustas
+        const constraints = {
+            video: {
+                deviceId: selectedDevice.deviceId ? { exact: selectedDevice.deviceId } : undefined,
+                // Forçar 1080p ou 720p ajuda a garantir que a lente macro (geralmente 2MP) seja descartada
+                width: { ideal: 1920 }, 
+                height: { ideal: 1080 },
+                facingMode: 'environment'
+            }
+        };
 
-        // Mostra video, esconde preview
-        video.classList.remove("escondido")
-        preview.classList.add("escondido")
-        captura.classList.remove("escondido")
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        streamAtual = stream;
+        video.srcObject = stream;
 
-        console.log('Câmera ativada')
-    }).catch(error => {
-        console.error('Erro ao acessar câmera:', error)
-        alert('Não foi possível acessar a câmera. Verifique as permissões.')
-    })
-})
+        video.classList.remove("escondido");
+        preview.classList.add("escondido");
+        captura.classList.remove("escondido");
+
+        console.log('Câmera principal ativada:', selectedDevice.label);
+    } catch (error) {
+        console.error('Erro ao acessar câmera:', error);
+        alert('Não foi possível acessar a câmera. Verifique as permissões.');
+    }
+});
 
 captura.addEventListener("click", () => {
     // Pausa o vídeo temporariamente para capturar

@@ -73,6 +73,14 @@ fieldset {
     padding: 3px;
 }
 
+textarea {
+    width: 100%;
+}
+
+textarea::-webkit-scrollbar-corner {
+    background-color: #002958a9;
+}
+
 #camera {
     display: flex;
     justify-content: space-around;
